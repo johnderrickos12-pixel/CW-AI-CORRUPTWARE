@@ -58,9 +58,9 @@ export const ChatInput = ({ onSend, isLoading }: ChatInputProps) => {
       <div className="max-w-4xl mx-auto mt-2 flex items-center justify-between text-xs text-muted-foreground">
         <span className="flex items-center gap-1">
           <div className="w-2 h-2 rounded-full bg-green-500 animate-pulse" />
-          Connected to Gemini 2.5 Flash
+          Gemini 2.5 Pro • Smarter than GPT-5
         </span>
-        <span>Press Enter to send • Shift+Enter for new line</span>
+        <span>Created by Yanna • Press Enter to send</span>
       </div>
     </form>
   );

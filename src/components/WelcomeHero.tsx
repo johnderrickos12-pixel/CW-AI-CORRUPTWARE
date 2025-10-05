@@ -88,8 +88,7 @@ export const WelcomeHero = () => {
           ))}
         </div>
 
-        {/* Example Prompts */}
-        <div className="space-y-4 animate-fade-in" style={{ animationDelay: "400ms" }}>
+        <div className="space-y-4 animate-fade-in" style={{ animationDelay: "600ms" }}>
           <h2 className="text-xl font-semibold text-foreground/70">Try asking me to...</h2>
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3 max-w-4xl mx-auto">
             {examplePrompts.map((prompt, idx) => (
@@ -106,7 +105,7 @@ export const WelcomeHero = () => {
         </div>
 
         {/* Features Banner */}
-        <div className="flex flex-wrap items-center justify-center gap-6 text-sm text-muted-foreground animate-fade-in" style={{ animationDelay: "600ms" }}>
+        <div className="flex flex-wrap items-center justify-center gap-6 text-sm text-muted-foreground animate-fade-in" style={{ animationDelay: "800ms" }}>
           <div className="flex items-center gap-2">
             <div className="w-2 h-2 rounded-full bg-green-500 animate-pulse" />
             <span>No Message Limits</span>
@@ -117,18 +116,21 @@ export const WelcomeHero = () => {
           </div>
           <div className="flex items-center gap-2">
             <div className="w-2 h-2 rounded-full bg-purple-500 animate-pulse" />
-            <span>Real-Time Streaming</span>
+            <span>Gemini 2.5 Pro Powered</span>
           </div>
           <div className="flex items-center gap-2">
             <div className="w-2 h-2 rounded-full bg-pink-500 animate-pulse" />
-            <span>Code Execution Ready</span>
+            <span>Smarter Than GPT-5</span>
           </div>
         </div>
 
         {/* CTA */}
-        <div className="pt-8 animate-fade-in" style={{ animationDelay: "800ms" }}>
+        <div className="pt-8 animate-fade-in" style={{ animationDelay: "1000ms" }}>
           <p className="text-lg text-foreground/60">
             Start typing below to unlock infinite possibilities...
+          </p>
+          <p className="text-sm text-muted-foreground mt-2">
+            Created by Yanna
           </p>
         </div>
       </div>

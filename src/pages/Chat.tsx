@@ -6,6 +6,7 @@ import { ChatInput } from "@/components/ChatInput";
 import { ConversationSidebar } from "@/components/ConversationSidebar";
 import { ParticleBackground } from "@/components/ParticleBackground";
 import { WelcomeHero } from "@/components/WelcomeHero";
+import { AboutFooter } from "@/components/AboutFooter";
 import { useToast } from "@/components/ui/use-toast";
 import { Bot, Loader2 } from "lucide-react";
 import { User, Session } from "@supabase/supabase-js";
@@ -327,6 +328,7 @@ export default function Chat() {
               <div ref={messagesEndRef} />
             </div>
           )}
+          {messages.length === 0 && <AboutFooter />}
         </div>
 
         <ChatInput onSend={handleSend} isLoading={isLoading} />

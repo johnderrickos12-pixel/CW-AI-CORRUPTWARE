@@ -164,7 +164,7 @@ export default function Auth() {
         </div>
 
         <div className="text-center text-sm text-muted-foreground">
-          <p>✨ Free forever • Unlimited conversations • No limits</p>
+          <p>✨ Created by Yanna • Free forever • Unlimited conversations • No limits</p>
         </div>
       </div>
     </div>
