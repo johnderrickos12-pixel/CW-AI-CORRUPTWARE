@@ -27,20 +27,23 @@ export const ChatInput = ({ onSend, isLoading }: ChatInputProps) => {
   };
 
   return (
-    <form onSubmit={handleSubmit} className="border-t border-border bg-card/50 backdrop-blur-lg p-4">
+    <form onSubmit={handleSubmit} className="border-t border-border bg-card/50 backdrop-blur-lg p-4 relative">
+      {/* Glow line at top */}
+      <div className="absolute top-0 left-0 right-0 h-[1px] bg-gradient-to-r from-transparent via-primary to-transparent opacity-50" />
+      
       <div className="max-w-4xl mx-auto flex gap-3 items-end">
         <Textarea
           value={input}
           onChange={(e) => setInput(e.target.value)}
           onKeyDown={handleKeyDown}
-          placeholder="Ask anything... Code, create, reason..."
-          className="min-h-[60px] max-h-[200px] bg-background/50 border-primary/20 focus:border-primary resize-none"
+          placeholder="Ask me anything... Code, create, reason, solve..."
+          className="min-h-[60px] max-h-[200px] bg-background/50 border-primary/20 focus:border-primary focus:ring-2 focus:ring-primary/20 resize-none transition-all"
           disabled={isLoading}
         />
         <Button
           type="submit"
           size="icon"
-          className="h-[60px] w-[60px] bg-gradient-to-br from-primary to-secondary hover:opacity-90 glow-effect"
+          className="h-[60px] w-[60px] bg-gradient-to-br from-primary to-secondary hover:opacity-90 hover:scale-105 glow-effect transition-all duration-300"
           disabled={isLoading || !input.trim()}
         >
           {isLoading ? (
@@ -49,6 +52,15 @@ export const ChatInput = ({ onSend, isLoading }: ChatInputProps) => {
             <Send className="w-5 h-5" />
           )}
         </Button>
+      </div>
+
+      {/* Status indicator */}
+      <div className="max-w-4xl mx-auto mt-2 flex items-center justify-between text-xs text-muted-foreground">
+        <span className="flex items-center gap-1">
+          <div className="w-2 h-2 rounded-full bg-green-500 animate-pulse" />
+          Connected to Gemini 2.5 Flash
+        </span>
+        <span>Press Enter to send • Shift+Enter for new line</span>
       </div>
     </form>
   );

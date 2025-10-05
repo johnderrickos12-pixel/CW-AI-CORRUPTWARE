@@ -165,4 +165,35 @@ All colors MUST be HSL.
       box-shadow: 0 0 40px hsl(180 100% 50% / 0.6);
     }
   }
+
+  /* Text shimmer effect */
+  .text-shimmer {
+    background: linear-gradient(
+      90deg,
+      hsl(180 100% 50%) 0%,
+      hsl(280 80% 60%) 50%,
+      hsl(180 100% 50%) 100%
+    );
+    background-size: 200% auto;
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
+    animation: shimmer 3s linear infinite;
+  }
+
+  @keyframes shimmer {
+    to {
+      background-position: 200% center;
+    }
+  }
+
+  /* Hover lift effect */
+  .hover-lift {
+    transition: transform 0.3s ease, box-shadow 0.3s ease;
+  }
+
+  .hover-lift:hover {
+    transform: translateY(-4px);
+    box-shadow: 0 8px 24px hsl(180 100% 50% / 0.3);
+  }
 }

@@ -77,17 +77,17 @@ export default function Auth() {
   return (
     <div className="min-h-screen flex items-center justify-center p-4 bg-gradient-to-br from-background via-background to-primary/5">
       <div className="w-full max-w-md space-y-8">
-        <div className="text-center space-y-4">
-          <div className="inline-flex items-center justify-center w-20 h-20 rounded-full bg-gradient-to-br from-primary to-secondary glow-effect-lg animate-pulse-glow">
-            <Bot className="w-10 h-10" />
-          </div>
-          <h1 className="text-4xl font-bold gradient-text">
-            Corrupt-Ware-AI
-          </h1>
-          <p className="text-muted-foreground">
-            The Infinite, Free, All-Knowing Assistant
-          </p>
+      <div className="text-center space-y-4 animate-fade-in">
+        <div className="inline-flex items-center justify-center w-20 h-20 rounded-full bg-gradient-to-br from-primary to-secondary hover:bg-gradient-to-br hover:from-secondary hover:to-accent glow-effect transition-all duration-300">
+          <Bot className="w-10 h-10 text-primary-foreground" />
         </div>
+        <h1 className="text-4xl font-bold gradient-text">
+          Corrupt-Ware-AI
+        </h1>
+        <p className="text-muted-foreground">
+          The Infinite, Free, All-Knowing Assistant
+        </p>
+      </div>
 
         <div className="glass-effect rounded-xl p-8 space-y-6">
           <Tabs defaultValue="signin" className="w-full">

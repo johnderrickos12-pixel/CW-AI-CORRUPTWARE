@@ -4,8 +4,10 @@ import { supabase } from "@/integrations/supabase/client";
 import { ChatMessage } from "@/components/ChatMessage";
 import { ChatInput } from "@/components/ChatInput";
 import { ConversationSidebar } from "@/components/ConversationSidebar";
+import { ParticleBackground } from "@/components/ParticleBackground";
+import { WelcomeHero } from "@/components/WelcomeHero";
 import { useToast } from "@/components/ui/use-toast";
-import { Bot } from "lucide-react";
+import { Bot, Loader2 } from "lucide-react";
 import { User, Session } from "@supabase/supabase-js";
 
 interface Message {
@@ -130,20 +132,34 @@ export default function Chat() {
     }
   };
 
+  const updateConversationTitle = async (conversationId: string, firstMessage: string) => {
+    const title = firstMessage.slice(0, 50) + (firstMessage.length > 50 ? "..." : "");
+    await supabase
+      .from("conversations")
+      .update({ title })
+      .eq("id", conversationId);
+  };
+
   const handleSend = async (content: string) => {
     if (!content.trim() || isLoading) return;
 
     let conversationId = currentConversationId;
+    let isNewConversation = false;
 
     if (!conversationId) {
       conversationId = await createConversation();
       if (!conversationId) return;
       setCurrentConversationId(conversationId);
+      isNewConversation = true;
     }
 
     const userMessage: Message = { role: "user", content };
     setMessages((prev) => [...prev, userMessage]);
     await saveMessage(conversationId, "user", content);
+
+    if (isNewConversation) {
+      await updateConversationTitle(conversationId, content);
+    }
 
     setIsLoading(true);
 
@@ -160,9 +176,29 @@ export default function Chat() {
         }
       );
 
-      if (!response.ok || !response.body) {
+      if (!response.ok) {
+        if (response.status === 429) {
+          toast({
+            title: "Rate Limit",
+            description: "Too many requests. Please wait a moment.",
+            variant: "destructive",
+          });
+          setMessages((prev) => prev.slice(0, -1));
+          return;
+        }
+        if (response.status === 402) {
+          toast({
+            title: "Usage Limit",
+            description: "AI credits exhausted. Please add more credits.",
+            variant: "destructive",
+          });
+          setMessages((prev) => prev.slice(0, -1));
+          return;
+        }
         throw new Error("Failed to get response");
       }
+
+      if (!response.body) throw new Error("No response body");
 
       const reader = response.body.getReader();
       const decoder = new TextDecoder();
@@ -215,7 +251,7 @@ export default function Chat() {
       console.error("Chat error:", error);
       toast({
         title: "Error",
-        description: "Failed to get AI response",
+        description: "Failed to get AI response. Please try again.",
         variant: "destructive",
       });
       setMessages((prev) => prev.slice(0, -1));
@@ -239,7 +275,9 @@ export default function Chat() {
   }
 
   return (
-    <div className="flex h-screen bg-background">
+    <div className="flex h-screen bg-background relative">
+      <ParticleBackground />
+      
       <ConversationSidebar
         currentConversationId={currentConversationId}
         onSelectConversation={(id) => {
@@ -250,59 +288,42 @@ export default function Chat() {
         onSignOut={handleSignOut}
       />
 
-      <div className="flex-1 flex flex-col">
+      <div className="flex-1 flex flex-col relative z-10">
         <div className="border-b border-border bg-card/30 backdrop-blur-lg p-4">
           <div className="max-w-4xl mx-auto flex items-center gap-3">
-            <div className="w-10 h-10 rounded-full bg-gradient-to-br from-primary to-secondary glow-effect flex items-center justify-center">
+            <div className="w-10 h-10 rounded-full bg-gradient-to-br from-primary to-secondary glow-effect flex items-center justify-center animate-pulse-glow">
               <Bot className="w-5 h-5" />
             </div>
             <div>
               <h1 className="text-xl font-bold gradient-text">Corrupt-Ware-AI</h1>
-              <p className="text-xs text-muted-foreground">Infinite • Free • Unlimited</p>
+              <p className="text-xs text-muted-foreground">
+                {isLoading ? (
+                  <span className="flex items-center gap-1">
+                    <Loader2 className="w-3 h-3 animate-spin" />
+                    Thinking...
+                  </span>
+                ) : (
+                  "Infinite • Free • Unlimited"
+                )}
+              </p>
             </div>
           </div>
         </div>
 
         <div className="flex-1 overflow-y-auto">
           {messages.length === 0 ? (
-            <div className="h-full flex items-center justify-center p-8">
-              <div className="text-center space-y-4 max-w-2xl">
-                <div className="w-20 h-20 mx-auto rounded-full bg-gradient-to-br from-primary to-secondary glow-effect-lg flex items-center justify-center animate-pulse-glow">
-                  <Bot className="w-10 h-10" />
-                </div>
-                <h2 className="text-3xl font-bold gradient-text">
-                  Welcome to Corrupt-Ware-AI
-                </h2>
-                <p className="text-muted-foreground text-lg">
-                  Your infinite, free AI assistant ready to code, create, and solve anything.
-                </p>
-                <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mt-8">
-                  <div className="glass-effect rounded-lg p-4 space-y-2">
-                    <div className="text-primary font-bold">💻 Code Anything</div>
-                    <p className="text-sm text-muted-foreground">
-                      Master of all languages from Python to Assembly
-                    </p>
-                  </div>
-                  <div className="glass-effect rounded-lg p-4 space-y-2">
-                    <div className="text-primary font-bold">🧠 Infinite Reasoning</div>
-                    <p className="text-sm text-muted-foreground">
-                      Solve complex problems with unlimited context
-                    </p>
-                  </div>
-                  <div className="glass-effect rounded-lg p-4 space-y-2">
-                    <div className="text-primary font-bold">⚡ Always Free</div>
-                    <p className="text-sm text-muted-foreground">
-                      No limits, no paywalls, forever
-                    </p>
-                  </div>
-                </div>
-              </div>
-            </div>
+            <WelcomeHero />
           ) : (
             <div className="max-w-4xl mx-auto py-8">
               {messages.map((msg, idx) => (
                 <ChatMessage key={idx} role={msg.role} content={msg.content} />
               ))}
+              {isLoading && messages[messages.length - 1]?.role === "assistant" && (
+                <div className="flex items-center gap-2 px-6 py-2 text-muted-foreground text-sm">
+                  <Loader2 className="w-4 h-4 animate-spin" />
+                  <span>Generating response...</span>
+                </div>
+              )}
               <div ref={messagesEndRef} />
             </div>
           )}
