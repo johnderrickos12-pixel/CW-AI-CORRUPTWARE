@@ -11,9 +11,16 @@ import { useToast } from "@/components/ui/use-toast";
 import { Bot, Loader2 } from "lucide-react";
 import { User, Session } from "@supabase/supabase-js";
 
+interface FileAttachment {
+  name: string;
+  url: string;
+  type: string;
+}
+
 interface Message {
   role: "user" | "assistant";
   content: string;
+  attachments?: FileAttachment[];
 }
 
 export default function Chat() {
@@ -23,6 +30,7 @@ export default function Chat() {
   const [user, setUser] = useState<User | null>(null);
   const [session, setSession] = useState<Session | null>(null);
   const messagesEndRef = useRef<HTMLDivElement>(null);
+  const abortControllerRef = useRef<AbortController | null>(null);
   const navigate = useNavigate();
   const { toast } = useToast();
 
@@ -97,9 +105,44 @@ export default function Chat() {
     const formattedMessages: Message[] = (data || []).map((msg) => ({
       role: msg.role as "user" | "assistant",
       content: msg.content,
+      attachments: (msg.attachments as any) || [],
     }));
 
     setMessages(formattedMessages);
+  };
+
+  const uploadFiles = async (files: File[]): Promise<FileAttachment[]> => {
+    const uploadedFiles: FileAttachment[] = [];
+
+    for (const file of files) {
+      const fileName = `${user?.id}/${Date.now()}_${file.name}`;
+      
+      const { error } = await supabase.storage
+        .from("chat-files")
+        .upload(fileName, file);
+
+      if (error) {
+        console.error("Error uploading file:", error);
+        toast({
+          title: "Upload failed",
+          description: `Failed to upload ${file.name}`,
+          variant: "destructive",
+        });
+        continue;
+      }
+
+      const { data: { publicUrl } } = supabase.storage
+        .from("chat-files")
+        .getPublicUrl(fileName);
+
+      uploadedFiles.push({
+        name: file.name,
+        url: publicUrl,
+        type: file.type,
+      });
+    }
+
+    return uploadedFiles;
   };
 
   const createConversation = async () => {
@@ -121,11 +164,17 @@ export default function Chat() {
     return data.id;
   };
 
-  const saveMessage = async (conversationId: string, role: string, content: string) => {
+  const saveMessage = async (
+    conversationId: string,
+    role: string,
+    content: string,
+    attachments?: FileAttachment[]
+  ) => {
     const { error } = await supabase.from("messages").insert({
       conversation_id: conversationId,
       role,
       content,
+      attachments: attachments as any || [],
     });
 
     if (error) {
@@ -141,8 +190,14 @@ export default function Chat() {
       .eq("id", conversationId);
   };
 
-  const handleSend = async (content: string) => {
-    if (!content.trim() || isLoading) return;
+  const handleSend = async (content: string, files?: File[]) => {
+    if ((!content.trim() && !files?.length) || isLoading) return;
+
+    // Upload files first
+    let attachments: FileAttachment[] = [];
+    if (files && files.length > 0) {
+      attachments = await uploadFiles(files);
+    }
 
     let conversationId = currentConversationId;
     let isNewConversation = false;
@@ -154,15 +209,16 @@ export default function Chat() {
       isNewConversation = true;
     }
 
-    const userMessage: Message = { role: "user", content };
+    const userMessage: Message = { role: "user", content, attachments };
     setMessages((prev) => [...prev, userMessage]);
-    await saveMessage(conversationId, "user", content);
+    await saveMessage(conversationId, "user", content, attachments);
 
     if (isNewConversation) {
       await updateConversationTitle(conversationId, content);
     }
 
     setIsLoading(true);
+    abortControllerRef.current = new AbortController();
 
     try {
       const response = await fetch(
@@ -174,6 +230,7 @@ export default function Chat() {
             Authorization: `Bearer ${import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY}`,
           },
           body: JSON.stringify({ messages: [...messages, userMessage] }),
+          signal: abortControllerRef.current.signal,
         }
       );
 
@@ -248,17 +305,44 @@ export default function Chat() {
       }
 
       await saveMessage(conversationId, "assistant", assistantContent);
-    } catch (error) {
-      console.error("Chat error:", error);
-      toast({
-        title: "Error",
-        description: "Failed to get AI response. Please try again.",
-        variant: "destructive",
-      });
-      setMessages((prev) => prev.slice(0, -1));
+    } catch (error: any) {
+      if (error.name === 'AbortError') {
+        console.log("Request aborted");
+        setMessages((prev) => prev.slice(0, -1));
+      } else {
+        console.error("Chat error:", error);
+        toast({
+          title: "Error",
+          description: "Failed to get AI response. Please try again.",
+          variant: "destructive",
+        });
+        setMessages((prev) => prev.slice(0, -1));
+      }
     } finally {
       setIsLoading(false);
+      abortControllerRef.current = null;
     }
+  };
+
+  const handleStop = () => {
+    if (abortControllerRef.current) {
+      abortControllerRef.current.abort();
+      toast({
+        title: "Stopped",
+        description: "Generation stopped",
+      });
+    }
+  };
+
+  const handleRegenerate = async () => {
+    if (messages.length < 2) return;
+    
+    // Remove the last assistant message and regenerate
+    const lastUserMessage = [...messages].reverse().find(m => m.role === "user");
+    if (!lastUserMessage) return;
+
+    setMessages((prev) => prev.filter((_, i) => i !== prev.length - 1));
+    await handleSend(lastUserMessage.content, undefined);
   };
 
   const handleNewConversation = () => {
@@ -317,7 +401,17 @@ export default function Chat() {
           ) : (
             <div className="max-w-4xl mx-auto py-8">
               {messages.map((msg, idx) => (
-                <ChatMessage key={idx} role={msg.role} content={msg.content} />
+                <ChatMessage
+                  key={idx}
+                  role={msg.role}
+                  content={msg.content}
+                  attachments={msg.attachments}
+                  onRegenerate={
+                    idx === messages.length - 1 && msg.role === "assistant" && !isLoading
+                      ? handleRegenerate
+                      : undefined
+                  }
+                />
               ))}
               {isLoading && messages[messages.length - 1]?.role === "assistant" && (
                 <div className="flex items-center gap-2 px-6 py-2 text-muted-foreground text-sm">
@@ -331,7 +425,7 @@ export default function Chat() {
           {messages.length === 0 && <AboutFooter />}
         </div>
 
-        <ChatInput onSend={handleSend} isLoading={isLoading} />
+        <ChatInput onSend={handleSend} isLoading={isLoading} onStop={handleStop} />
       </div>
     </div>
   );

@@ -1,7 +1,8 @@
 import { useState, useEffect } from "react";
-import { Plus, MessageSquare, Trash2, LogOut } from "lucide-react";
+import { Plus, MessageSquare, Trash2, LogOut, Edit2, Check, X } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { ScrollArea } from "@/components/ui/scroll-area";
+import { Input } from "@/components/ui/input";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/components/ui/use-toast";
 
@@ -25,6 +26,8 @@ export const ConversationSidebar = ({
   onSignOut,
 }: ConversationSidebarProps) => {
   const [conversations, setConversations] = useState<Conversation[]>([]);
+  const [editingId, setEditingId] = useState<string | null>(null);
+  const [editTitle, setEditTitle] = useState("");
   const { toast } = useToast();
 
   useEffect(() => {
@@ -68,6 +71,43 @@ export const ConversationSidebar = ({
     }
   };
 
+  const startEditing = (id: string, title: string, e: React.MouseEvent) => {
+    e.stopPropagation();
+    setEditingId(id);
+    setEditTitle(title);
+  };
+
+  const saveEdit = async (id: string, e: React.MouseEvent) => {
+    e.stopPropagation();
+    
+    if (!editTitle.trim()) {
+      setEditingId(null);
+      return;
+    }
+
+    const { error } = await supabase
+      .from("conversations")
+      .update({ title: editTitle })
+      .eq("id", id);
+
+    if (error) {
+      toast({
+        title: "Error",
+        description: "Failed to rename conversation",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    setEditingId(null);
+    loadConversations();
+  };
+
+  const cancelEdit = (e: React.MouseEvent) => {
+    e.stopPropagation();
+    setEditingId(null);
+  };
+
   return (
     <div className="w-64 border-r border-border bg-card/30 backdrop-blur-lg flex flex-col h-screen">
       <div className="p-4 border-b border-border">
@@ -93,15 +133,54 @@ export const ConversationSidebar = ({
               onClick={() => onSelectConversation(conv.id)}
             >
               <MessageSquare className="w-4 h-4 text-primary flex-shrink-0" />
-              <span className="flex-1 truncate text-sm">{conv.title}</span>
-              <Button
-                size="icon"
-                variant="ghost"
-                className="opacity-0 group-hover:opacity-100 h-6 w-6"
-                onClick={(e) => deleteConversation(conv.id, e)}
-              >
-                <Trash2 className="w-3 h-3" />
-              </Button>
+              
+              {editingId === conv.id ? (
+                <>
+                  <Input
+                    value={editTitle}
+                    onChange={(e) => setEditTitle(e.target.value)}
+                    onClick={(e) => e.stopPropagation()}
+                    className="flex-1 h-6 text-sm"
+                    autoFocus
+                  />
+                  <Button
+                    size="icon"
+                    variant="ghost"
+                    className="h-6 w-6"
+                    onClick={(e) => saveEdit(conv.id, e)}
+                  >
+                    <Check className="w-3 h-3 text-green-500" />
+                  </Button>
+                  <Button
+                    size="icon"
+                    variant="ghost"
+                    className="h-6 w-6"
+                    onClick={cancelEdit}
+                  >
+                    <X className="w-3 h-3 text-destructive" />
+                  </Button>
+                </>
+              ) : (
+                <>
+                  <span className="flex-1 truncate text-sm">{conv.title}</span>
+                  <Button
+                    size="icon"
+                    variant="ghost"
+                    className="opacity-0 group-hover:opacity-100 h-6 w-6"
+                    onClick={(e) => startEditing(conv.id, conv.title, e)}
+                  >
+                    <Edit2 className="w-3 h-3" />
+                  </Button>
+                  <Button
+                    size="icon"
+                    variant="ghost"
+                    className="opacity-0 group-hover:opacity-100 h-6 w-6"
+                    onClick={(e) => deleteConversation(conv.id, e)}
+                  >
+                    <Trash2 className="w-3 h-3" />
+                  </Button>
+                </>
+              )}
             </div>
           ))}
         </div>
